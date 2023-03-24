@@ -20,12 +20,14 @@ Full set of options:
 Usage: generate.py [OPTIONS]
 
 Options:
+  --end-time [%H:%M:%S]           The time at which to stop taking screenshots. Defaults to 95% of the video duration, to exclude credits.
   --ffmpeg-path TEXT           The path to ffmpeg. Defaults to 'ffmpeg', which requires ffmpeg to be in your path.
   --pool-directory TEXT        The directory in which to store the screenshot pool. Defaults to the temp directory.
   --pool-report-path TEXT      A text file listing all pool files in order of descending score. Defaults to not generating the report.
   --pool-size INTEGER          The size of the pool from which to select screenshots. Defaults to 64.
   --screenshot-count INTEGER   The number of screenshots to generate. Defaults to 4.
   --screenshot-directory TEXT  The directory in which to store the screenshots.  [required]
+  --start-time [%H:%M:%S]         The time at which to start taking screenshots. Defaults to 00:00:00.
   --video-path TEXT            The path to the video for which to generate screenshots.  [required]
   --help                       Show this message and exit.
 ```
