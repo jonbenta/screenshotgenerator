@@ -1,5 +1,5 @@
 # ScreenshotGenerator
-This project aims to automate the selection of video screenshots. It employs `ffmpeg` to generate a pool of screenshots then calls on two `autogluon` machine learning models to score the  screenshots in order to select the best of them. The first model attempts to determine whether a screenshot is focused while the second model attempts to determine whether the screenshot is a portrait. The first model's score makes up 75% of the total score while the second model's score makes up 25% of the total score.
+This project aims to automate the selection of video screenshots. It employs `ffmpeg` to generate a pool of screenshots then calls on two `autogluon` machine learning models to score the screenshots in order to select the best of them. The first model attempts to determine whether a screenshot is focused while the second model attempts to determine whether the screenshot is a portrait (a close-up of one or more people). The first model's score makes up 75% of the total score while the second model's score makes up 25% of the total score.
 
 ## Dependencies
 The following must be installed on your system:

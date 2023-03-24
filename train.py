@@ -1,3 +1,4 @@
+from __future__ import annotations
 import click
 from autogluon.multimodal import MultiModalPredictor
 from common import get_model_path
@@ -24,8 +25,14 @@ def train(directory: str, model_name: str, time_limit: int):
             rmtree(model_path)
         else:
             return
+        
+    subdirectories = [d for d in Path(directory).iterdir() if d.is_dir()]
+    subdirectory_names = [d.name for d in subdirectories]
 
-    for subdirectory in Path(directory).iterdir():
+    if len(subdirectory_names) != 2 or 'Yes' not in subdirectory_names or 'No' not in subdirectory_names:
+        raise ValueError(f"'{directory}' must contain exactly 2 subdirectories, named 'Yes' and 'No'.")
+    
+    for subdirectory in subdirectories:
         label = subdirectory.name
 
         for file in Path(subdirectory).iterdir():
