@@ -16,12 +16,13 @@ from tempfile import gettempdir
 @click.option("--pool-directory", default=gettempdir(), type=str, help="The directory in which to store the screenshot pool. Defaults to the temp directory.")
 @click.option("--pool-report-path", default=None, type=str, help="A text file listing all pool files in order of descending score. Defaults to not generating the report.")
 @click.option("--pool-size", default=64, type=int, help="The size of the pool from which to select screenshots. Defaults to 64.")
+@click.option("--portrait-preference", default="portrait", type=click.Choice(["portrait", "mixed", "noportrait"]), help="Preference regarding portrait screenshots. Defaults to 'portrait'.")
 @click.option("--screenshot-count", default=4, type=int, help="The number of screenshots to generate. Defaults to 4.")
 @click.option("--screenshot-directory", required=True, type=str, help="The directory in which to store the screenshots.")
 @click.option("--start-time", default="00:00:00", type=click.DateTime(formats=["%H:%M:%S"]), help="The time at which to start taking screenshots. Defaults to 00:00:00.")
 @click.option("--video-path", required=True, type=str, help="The path to the video for which to generate screenshots.")
 
-def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_path: str, pool_size: int, screenshot_count: int, screenshot_directory: str, start_time: datetime, video_path: str):
+def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_path: str, pool_size: int, portrait_preference: str, screenshot_count: int, screenshot_directory: str, start_time: datetime, video_path: str):
     if pool_size < screenshot_count:
         raise ValueError("--pool-size must be greater than --screenshot_count.")
 
@@ -47,7 +48,7 @@ def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_
     ])
 
     screenshots = [str(f) for f in Path(pool_directory).iterdir() if f.name.startswith(Path(video_path).stem)]
-    ordered_screenshots = order_by_score_desc(screenshots)
+    ordered_screenshots = order_by_score_desc(screenshots, portrait_preference)
     write_pool_report(pool_report_path, ordered_screenshots)
 
     for f in ordered_screenshots[:screenshot_count]:
@@ -56,10 +57,16 @@ def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_
 def time_in_seconds(time: datetime) -> int:
     return timedelta(hours=time.hour, minutes=time.minute, seconds=time.second).total_seconds()
 
-def order_by_score_desc(screenshots: list) -> list[str]:
+def order_by_score_desc(screenshots: list, portrait_preference: str) -> list[str]:
     data = DataFrame(screenshots, columns=["file"])
     focused_scores = MultiModalPredictor.load(str(get_model_path("focused"))).predict_proba(data=data).Yes.values
-    portrait_scores = MultiModalPredictor.load(str(get_model_path("portrait"))).predict_proba(data=data).Yes.values
+
+    if portrait_preference == "portrait":
+        portrait_scores = MultiModalPredictor.load(str(get_model_path("portrait"))).predict_proba(data=data).Yes.values
+    elif portrait_preference == "noportrait":
+        portrait_scores = MultiModalPredictor.load(str(get_model_path("portrait"))).predict_proba(data=data).No.values
+    else:
+        portrait_scores = [0] * len(screenshots)
 
     scored_screenshots = [{
         "path": path, 
@@ -67,7 +74,7 @@ def order_by_score_desc(screenshots: list) -> list[str]:
         "portrait_score": portrait_scores[index]
     } for index, path in enumerate(screenshots)]
 
-    scored_screenshots = sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + (s['portrait_score'] * 0.25), reverse=True) 
+    scored_screenshots = sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + (s['portrait_score'] * 0.25), reverse=True)
     return [ss['path'] for ss in scored_screenshots]
 
 def write_pool_report(report_path: str, ordered_screenshots: list):
