@@ -9,6 +9,12 @@ The following must be installed on your system:
 
 All Python dependencies are installed by running `pip install --user -U -r requirements.txt` in the project directory.
 
+### CUDA
+`autogluon` uses the CPU version of PyTorch, by default. If you have a CUDA-enabled GPU, installing the CUDA version of PyTorch will increase prediction and training speeds:
+```
+pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+```
+
 ## Usage
 Download [model.zip](https://drive.google.com/file/d/1oRFO0fW-fmFn-CfsdvQqNTqQgU2gaQ0B/view?usp=sharing) and extract the contents into the project directory then run something like the following:
 ```
