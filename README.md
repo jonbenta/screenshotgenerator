@@ -20,17 +20,31 @@ Full set of options:
 Usage: generate.py [OPTIONS]
 
 Options:
-  --end-time [%H:%M:%S]           The time at which to stop taking screenshots. Defaults to 95% of the video duration, to exclude credits.
-  --ffmpeg-path TEXT              The path to ffmpeg. Defaults to 'ffmpeg', which requires ffmpeg to be in your path.
-  --pool-directory TEXT           The directory in which to store the screenshot pool. Defaults to the temp directory.
-  --pool-report-path TEXT         A text file listing all pool files in order of descending score. Defaults to not generating the report.
-  --pool-size INTEGER             The size of the pool from which to select screenshots. Defaults to 64.
+  --end-time [%H:%M:%S]           The time at which to stop taking
+                                  screenshots. Defaults to 95% of the video
+                                  duration, to exclude credits.
+  --ffmpeg-path TEXT              The path to ffmpeg. Defaults to 'ffmpeg',
+                                  which requires ffmpeg to be in your path.
+  --pool-directory TEXT           The directory in which to store the
+                                  screenshot pool. Defaults to the temp
+                                  directory.
+  --pool-report-path TEXT         A JSON file containing all pool files, and
+                                  their scores, in order of descending
+                                  preference. Defaults to not generating a
+                                  report.
+  --pool-size INTEGER             The size of the pool from which to select
+                                  screenshots. Defaults to 64.
   --portrait-preference [portrait|mixed|noportrait]
-                                  Preference regarding portrait screenshots. Defaults to 'portrait'.
-  --screenshot-count INTEGER      The number of screenshots to generate. Defaults to 4.
-  --screenshot-directory TEXT     The directory in which to store the screenshots.  [required]
-  --start-time [%H:%M:%S]         The time at which to start taking screenshots. Defaults to 00:00:00.
-  --video-path TEXT               The path to the video for which to generate screenshots.  [required]
+                                  Preference regarding portrait screenshots.
+                                  Defaults to 'portrait'.
+  --screenshot-count INTEGER      The number of screenshots to generate.
+                                  Defaults to 4.
+  --screenshot-directory TEXT     The directory in which to store the
+                                  screenshots.  [required]
+  --start-time [%H:%M:%S]         The time at which to start taking
+                                  screenshots. Defaults to 00:00:00.
+  --video-path TEXT               The path to the video for which to generate
+                                  screenshots.  [required]
   --help                          Show this message and exit.
 ```
 
@@ -48,8 +62,14 @@ Full set of options:
 Usage: train.py [OPTIONS]
 
 Options:
-  --focused-directory TEXT       The directory containing training images for the focused model, organized into 'Yes' and 'No' subdirectories.  [required]
-  --portrait-directory TEXT      The directory containing training images for the portrait model, organized into 'Yes' and 'No' subdirectories.  [required]
-  --training-time-limit INTEGER  The training time limit (seconds). Defaults to letting autogluon run until it's had enough.
+  --focused-directory TEXT       The directory containing training images for
+                                 the focused model, organized into 'Yes' and
+                                 'No' subdirectories.  [required]
+  --portrait-directory TEXT      The directory containing training images for
+                                 the portrait model, organized into 'Yes' and
+                                 'No' subdirectories.  [required]
+  --training-time-limit INTEGER  The training time limit (seconds). Defaults
+                                 to letting autogluon run until it's had
+                                 enough.
   --help                         Show this message and exit.
 ```

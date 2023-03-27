@@ -1,6 +1,7 @@
 from __future__ import annotations
 import click
 import itertools
+import json
 import subprocess
 from autogluon.multimodal import MultiModalPredictor
 from common import get_model_path
@@ -19,7 +20,7 @@ from tempfile import gettempdir
 @click.option("--pool-directory", default=gettempdir(), type=str, 
               help="The directory in which to store the screenshot pool. Defaults to the temp directory.")
 @click.option("--pool-report-path", default=None, type=str, 
-              help="A text file listing all pool files in order of descending score. Defaults to not generating a report.")
+              help="A JSON file containing all pool files, and their scores, in order of descending preference. Defaults to not generating a report.")
 @click.option("--pool-size", default=64, type=int, 
               help="The size of the pool from which to select screenshots. Defaults to 64.")
 @click.option("--portrait-preference", default="portrait", type=click.Choice(["portrait", "mixed", "noportrait"]), 
@@ -59,47 +60,44 @@ def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_
     ])
 
     screenshots = [str(f) for f in Path(pool_directory).iterdir() if f.name.startswith(Path(video_path).stem)]
-    ordered_screenshots = order_by_score_desc(screenshots, portrait_preference)
-    write_pool_report(pool_report_path, ordered_screenshots)
+    scored_screenshots = score_screenshots(screenshots, portrait_preference)
+    write_pool_report(pool_report_path, scored_screenshots)
 
-    for f in ordered_screenshots[:screenshot_count]:
-        copy(f, Path(screenshot_directory, Path(f).name))
+    for s in scored_screenshots[:screenshot_count]:
+        copy(s['path'], Path(screenshot_directory, Path(s['path']).name))
 
-def order_by_score_desc(screenshots: list, portrait_preference: str) -> list[str]:
+def score_screenshots(screenshots: list, portrait_preference: str) -> list[dict]:
     data = DataFrame(screenshots, columns=["file"])
     focused_scores = MultiModalPredictor.load(str(get_model_path("focused"))).predict_proba(data=data).Yes.values
     portrait_scores = MultiModalPredictor.load(str(get_model_path("portrait"))).predict_proba(data=data).Yes.values
 
     scored_screenshots = [{
         "path": path, 
-        "focused_score": focused_scores[index],
-        "portrait_score": portrait_scores[index]
+        "focused_score": float(focused_scores[index]),
+        "portrait_score": float(portrait_scores[index])
     } for index, path in enumerate(screenshots)]
 
-    screenshots_sorted_by_portrait = [s['path'] for s in sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + (s['portrait_score'] * 0.25), reverse=True)]
-    screenshots_sorted_by_noportrait = [s['path'] for s in sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + ((1 - s['portrait_score']) * 0.25), reverse=True)]
+    screenshots_sorted_by_portrait = sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + (s['portrait_score'] * 0.25), reverse=True)
+    screenshots_sorted_by_noportrait = sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + ((1 - s['portrait_score']) * 0.25), reverse=True)
 
     if portrait_preference == "portrait":
         return screenshots_sorted_by_portrait
     elif portrait_preference == "noportrait":
         return screenshots_sorted_by_noportrait
     else:
-        return remove_duplicates(list(itertools.chain(*zip(screenshots_sorted_by_portrait, screenshots_sorted_by_noportrait))))
-
-def remove_duplicates(collection: list) -> list:
-    seen = set()
-    seen_add = seen.add
-    return [x for x in collection if not (x in seen or seen_add(x))]
+        screenshots_sorted_by_mixed = itertools.chain(*zip(screenshots_sorted_by_portrait, screenshots_sorted_by_noportrait))
+        unique_paths = set()
+        return [s for s in screenshots_sorted_by_mixed if not (s['path'] in unique_paths or unique_paths.add(s['path']))]
 
 def time_in_seconds(time: datetime) -> int:
     return timedelta(hours=time.hour, minutes=time.minute, seconds=time.second).total_seconds()
 
-def write_pool_report(report_path: str, ordered_screenshots: list):
+def write_pool_report(report_path: str, scored_screenshots: list[dict]):
     if not report_path:
         return
     
     pool_list_file = open(report_path, "w")
-    pool_list_file.write("\n".join(ordered_screenshots))
+    pool_list_file.write(json.dumps(scored_screenshots))
     pool_list_file.close()
 
 if __name__ == "__main__":
