@@ -1,5 +1,4 @@
 from .portrait_preference import PortraitPreference
-from datetime import timedelta
 from tempfile import gettempdir
 
 class Defaults:

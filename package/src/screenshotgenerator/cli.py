@@ -1,9 +1,12 @@
 import click
 import json
-from click_enum_type import EnumType
-from common import get_models_directory
 from datetime import datetime
-from lib.src.screenshotgenerator import generate, Defaults, PortraitPreference, Screenshot
+
+from .click_enum_type import EnumType
+from .defaults import Defaults
+from .generate import generate
+from .portrait_preference import PortraitPreference
+from .screenshot import Screenshot
 
 @click.command()
 @click.option("--end-time",
@@ -16,6 +19,10 @@ from lib.src.screenshotgenerator import generate, Defaults, PortraitPreference, 
               default=Defaults.FFMPEG_PATH,
               show_default=True,
               help="The path to ffmpeg.")
+@click.option("--models-directory",
+              type=str,
+              required=True,
+              help="The path to the 'models' directory extracted from models.zip.")
 @click.option("--pool-directory",
               type=str,
               default=Defaults.POOL_DIRECTORY,
@@ -60,12 +67,12 @@ from lib.src.screenshotgenerator import generate, Defaults, PortraitPreference, 
               required=True,
               help="The path to the video for which to generate screenshots.")
 
-def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_path: str, pool_size: int, portrait_preference: PortraitPreference,
+def main(end_time: datetime, ffmpeg_path: str, models_directory: str, pool_directory: str, pool_report_path: str, pool_size: int, portrait_preference: PortraitPreference,
          screenshot_count: int, screenshot_directory: str, silent: bool, start_time: datetime, video_path: str):
     sorted_screenshots = generate(
         end_time=end_time,
         ffmpeg_path=ffmpeg_path,
-        models_directory=str(get_models_directory()),
+        models_directory=models_directory,
         pool_directory=pool_directory,
         pool_size=pool_size,
         portrait_preference=portrait_preference,
