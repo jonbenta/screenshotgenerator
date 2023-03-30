@@ -10,7 +10,7 @@ from os import devnull
 from pandas import DataFrame
 from pathlib import Path
 from pymediainfo import MediaInfo
-from shutil import copy
+from shutil import copy, which
 
 from .defaults import Defaults
 from .portrait_preference import PortraitPreference
@@ -21,16 +21,30 @@ def generate(models_directory: str, screenshot_directory: str, video_path: str, 
              pool_size: Optional[int] = Defaults.POOL_SIZE, portrait_preference: Optional[PortraitPreference] = Defaults.PORTRAIT_PREFERENCE,
              screenshot_count: Optional[int] = Defaults.SCREENSHOT_COUNT, silent: Optional[bool] = Defaults.SILENT, 
              start_time: Optional[datetime] = datetime.strptime(Defaults.START_TIME, Defaults.TIME_FORMAT)) -> list[Screenshot]:
-    if pool_size <= screenshot_count:
-        raise ValueError("Pool size must be greater or equal to screenshot count.")
+    
+    if not Path(models_directory, "focused").is_dir() or not Path(models_directory, "portrait").is_dir():
+        raise ValueError(f"'{models_directory}' must contain 'focused' and 'portrait' subdirectories.")
+    if not Path(video_path).is_file():
+        raise ValueError(f"'{video_path}' is not a file.")
+    if which(ffmpeg_path) is None:
+        raise ValueError(f"'{ffmpeg_path}' does not exist.")
+
+    video_duration_in_seconds = float(MediaInfo.parse(video_path).video_tracks[0].duration) / 1000
+    end_time_in_seconds = _datetime_to_seconds(end_time) if end_time else video_duration_in_seconds * 0.95
+    start_time_in_seconds = _datetime_to_seconds(start_time)
+
+    if start_time_in_seconds >= video_duration_in_seconds:
+        raise ValueError("Start time must be less than video duration.")
+    if end_time_in_seconds >= video_duration_in_seconds:
+        raise ValueError("End time must be less than video duration.")
+    if start_time_in_seconds >= end_time_in_seconds:
+        raise ValueError("Start time must be less than end time.")
 
     Path(pool_directory).mkdir(parents=True, exist_ok=True)
     Path(screenshot_directory).mkdir(parents=True, exist_ok=True)
     screenshot_template = str(Path(pool_directory, f"{Path(video_path).stem}-%d.png"))
 
-    video_duration_in_seconds = float(MediaInfo.parse(video_path).video_tracks[0].duration) / 1000
-    end_time_in_seconds = _datetime_to_seconds(end_time) if end_time else video_duration_in_seconds * 0.95
-    screenshot_duration_in_seconds = end_time_in_seconds - _datetime_to_seconds(start_time)
+    screenshot_duration_in_seconds = end_time_in_seconds - start_time_in_seconds
     fps = pool_size / screenshot_duration_in_seconds
 
     subprocess_output = subprocess.DEVNULL if silent else None
