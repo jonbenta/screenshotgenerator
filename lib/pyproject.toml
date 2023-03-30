@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "screenshotgenerator"
+version = "0.1.1"
+authors = [
+  { name="jonbenta" },
+]
+description = "A library for automatically generating and selecting video screenshots."
+readme = "README.md"
+requires-python = ">=3.8, <3.11"
+dependencies = ["autogluon", "pymediainfo"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jonbenta/ScreenshotGenerator"
+"Bug Tracker" = "https://github.com/jonbenta/ScreenshotGenerator/issues"

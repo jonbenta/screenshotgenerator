@@ -1,104 +1,88 @@
-from __future__ import annotations
 import click
-import itertools
 import json
-import subprocess
-from autogluon.multimodal import MultiModalPredictor
-from common import get_model_path
-from datetime import datetime, timedelta
-from pandas import DataFrame
-from pathlib import Path
-from pymediainfo import MediaInfo
-from shutil import copy
-from tempfile import gettempdir
+from click_enum_type import EnumType
+from common import get_models_directory
+from datetime import datetime
+from lib.src.screenshotgenerator import generate, Defaults, PortraitPreference, Screenshot
 
 @click.command()
-@click.option("--end-time", default=None, type=click.DateTime(formats=["%H:%M:%S"]), 
+@click.option("--end-time",
+              type=click.DateTime(formats=[Defaults.TIME_FORMAT]),
+              default=Defaults.END_TIME,
+              show_default=False,
               help="The time at which to stop taking screenshots. Defaults to 95% of the video duration, to exclude credits.")
-@click.option("--ffmpeg-path", default="ffmpeg", type=str, 
-              help="The path to ffmpeg. Defaults to 'ffmpeg', which requires ffmpeg to be in your path.")
-@click.option("--pool-directory", default=gettempdir(), type=str, 
-              help="The directory in which to store the screenshot pool. Defaults to the temp directory.")
-@click.option("--pool-report-path", default=None, type=str, 
-              help="A JSON file containing all pool files, and their scores, in order of descending preference. Defaults to not generating a report.")
-@click.option("--pool-size", default=64, type=int, 
-              help="The size of the pool from which to select screenshots. Defaults to 64.")
-@click.option("--portrait-preference", default="portrait", type=click.Choice(["portrait", "mixed", "noportrait"]), 
-              help="Preference regarding portrait screenshots. Defaults to 'portrait'.")
-@click.option("--screenshot-count", default=4, type=int, 
-              help="The number of screenshots to generate. Defaults to 4.")
-@click.option("--screenshot-directory", required=True, type=str, 
-              help="The directory in which to store the screenshots.")
-@click.option("--start-time", default="00:00:00", type=click.DateTime(formats=["%H:%M:%S"]), 
-              help="The time at which to start taking screenshots. Defaults to 00:00:00.")
-@click.option("--video-path", required=True, type=str, 
+@click.option("--ffmpeg-path",
+              type=str,
+              default=Defaults.FFMPEG_PATH,
+              show_default=True,
+              help="The path to ffmpeg.")
+@click.option("--pool-directory",
+              type=str,
+              default=Defaults.POOL_DIRECTORY,
+              show_default=True,
+              help="The directory in which to store the screenshot pool.")
+@click.option("--pool-report-path",
+              type=str,
+              default=None,
+              show_default=True,
+              help="A JSON file detailing the screenshot pool, sorted by descending preference.")
+@click.option("--pool-size",
+              type=int,
+              default=Defaults.POOL_SIZE,
+              show_default=True,
+              help="The size of the pool from which to select screenshots.")
+@click.option("--portrait-preference",
+              type=EnumType(PortraitPreference),
+              default=Defaults.PORTRAIT_PREFERENCE.value,
+              show_default=True,
+              help="Preference regarding portrait screenshots.")
+@click.option("--screenshot-count",
+              type=int,
+              default=Defaults.SCREENSHOT_COUNT,
+              show_default=True,
+              help="The number of screenshots to select.")
+@click.option("--screenshot-directory",
+              type=str,
+              required=True,
+              help="The directory into which to copy the selected screenshots.")
+@click.option("--silent",
+              is_flag=True,
+              default=Defaults.SILENT,
+              show_default=True,
+              help="Suppress ffmpeg and autogluon output.")
+@click.option("--start-time",
+              type=click.DateTime(formats=[Defaults.TIME_FORMAT]),
+              default=Defaults.START_TIME,
+              show_default=True,
+              help="The time at which to start taking screenshots.")
+@click.option("--video-path",
+              type=str,
+              required=True,
               help="The path to the video for which to generate screenshots.")
 
-def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_path: str, pool_size: int, portrait_preference: str, screenshot_count: int, screenshot_directory: str, start_time: datetime, video_path: str):
-    if pool_size < screenshot_count:
-        raise ValueError("--pool-size must be greater than --screenshot_count.")
+def main(end_time: datetime, ffmpeg_path: str, pool_directory: str, pool_report_path: str, pool_size: int, portrait_preference: PortraitPreference,
+         screenshot_count: int, screenshot_directory: str, silent: bool, start_time: datetime, video_path: str):
+    sorted_screenshots = generate(
+        end_time=end_time,
+        ffmpeg_path=ffmpeg_path,
+        models_directory=str(get_models_directory()),
+        pool_directory=pool_directory,
+        pool_size=pool_size,
+        portrait_preference=portrait_preference,
+        screenshot_count=screenshot_count,
+        screenshot_directory=screenshot_directory,
+        silent=silent,
+        start_time=start_time,
+        video_path=video_path)
 
-    Path(pool_directory).mkdir(parents=True, exist_ok=True)
-    Path(screenshot_directory).mkdir(parents=True, exist_ok=True)
-    screenshot_template = str(Path(pool_directory, f"{Path(video_path).stem}-%d.png"))
+    write_pool_report(pool_report_path, sorted_screenshots)
 
-    video_duration_in_seconds = float(MediaInfo.parse(video_path).video_tracks[0].duration) / 1000
-    end_time_in_seconds = time_in_seconds(end_time) if end_time else video_duration_in_seconds * 0.95
-    screenshot_duration_in_seconds = end_time_in_seconds - time_in_seconds(start_time)
-    fps = pool_size / screenshot_duration_in_seconds
-
-    subprocess.call([
-        ffmpeg_path,
-        "-skip_frame", "nokey",
-        "-y",
-        "-i", video_path,
-        "-ss", start_time.strftime("%H:%M:%S"),
-        "-frames:v", str(pool_size),
-        "-pred", "mixed",
-        "-vf", f"fps={fps}",
-        screenshot_template
-    ])
-
-    screenshots = [str(f) for f in Path(pool_directory).iterdir() if f.name.startswith(Path(video_path).stem)]
-    scored_screenshots = score_screenshots(screenshots, portrait_preference)
-    write_pool_report(pool_report_path, scored_screenshots)
-
-    for s in scored_screenshots[:screenshot_count]:
-        copy(s['path'], Path(screenshot_directory, Path(s['path']).name))
-
-def score_screenshots(screenshots: list, portrait_preference: str) -> list[dict]:
-    data = DataFrame(screenshots, columns=["file"])
-    focused_scores = MultiModalPredictor.load(str(get_model_path("focused"))).predict_proba(data=data).Yes.values
-    portrait_scores = MultiModalPredictor.load(str(get_model_path("portrait"))).predict_proba(data=data).Yes.values
-
-    scored_screenshots = [{
-        "path": path, 
-        "focused_score": float(focused_scores[index]),
-        "portrait_score": float(portrait_scores[index])
-    } for index, path in enumerate(screenshots)]
-
-    screenshots_sorted_by_portrait = sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + (s['portrait_score'] * 0.25), reverse=True)
-    screenshots_sorted_by_noportrait = sorted(scored_screenshots, key=lambda s: (s['focused_score'] * 0.75) + ((1 - s['portrait_score']) * 0.25), reverse=True)
-
-    if portrait_preference == "portrait":
-        return screenshots_sorted_by_portrait
-    elif portrait_preference == "noportrait":
-        return screenshots_sorted_by_noportrait
-    else:
-        screenshots_sorted_by_mixed = itertools.chain(*zip(screenshots_sorted_by_portrait, screenshots_sorted_by_noportrait))
-        unique_paths = set()
-        return [s for s in screenshots_sorted_by_mixed if not (s['path'] in unique_paths or unique_paths.add(s['path']))]
-
-def time_in_seconds(time: datetime) -> int:
-    return timedelta(hours=time.hour, minutes=time.minute, seconds=time.second).total_seconds()
-
-def write_pool_report(report_path: str, scored_screenshots: list[dict]):
+def write_pool_report(report_path: str, sorted_screenshots: list[Screenshot]):
     if not report_path:
         return
     
-    pool_list_file = open(report_path, "w")
-    pool_list_file.write(json.dumps(scored_screenshots))
-    pool_list_file.close()
+    with open(report_path, "w") as pool_list_file:
+        pool_list_file.write(json.dumps(sorted_screenshots, indent=4, default=vars))
 
 if __name__ == "__main__":
     main()

@@ -16,7 +16,9 @@ pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url http
 ```
 
 ## Usage
-Download [model.zip](https://drive.google.com/file/d/1oRFO0fW-fmFn-CfsdvQqNTqQgU2gaQ0B/view?usp=sharing) and extract the contents into the project directory then run something like the following:
+
+### CLI
+Download [models.zip](https://drive.google.com/file/d/1oRFO0fW-fmFn-CfsdvQqNTqQgU2gaQ0B/view?usp=sharing) and extract the contents into the project directory then run something like the following:
 ```
 python generate.py --screenshot-directory "B:\Screenshots" --video-path "Z:\Encodes\A Great Movie (2023).mkv"
 ```
@@ -29,30 +31,31 @@ Options:
   --end-time [%H:%M:%S]           The time at which to stop taking
                                   screenshots. Defaults to 95% of the video
                                   duration, to exclude credits.
-  --ffmpeg-path TEXT              The path to ffmpeg. Defaults to 'ffmpeg',
-                                  which requires ffmpeg to be in your path.
+  --ffmpeg-path TEXT              The path to ffmpeg.  [default: ffmpeg]
   --pool-directory TEXT           The directory in which to store the
-                                  screenshot pool. Defaults to the temp
-                                  directory.
-  --pool-report-path TEXT         A JSON file containing all pool files, and
-                                  their scores, in order of descending
-                                  preference. Defaults to not generating a
-                                  report.
+                                  screenshot pool. Defaults to the 
+                                  temporary directory.
+  --pool-report-path TEXT         A JSON file detailing the screenshot pool,
+                                  sorted by descending preference.
   --pool-size INTEGER             The size of the pool from which to select
-                                  screenshots. Defaults to 64.
-  --portrait-preference [portrait|mixed|noportrait]
+                                  screenshots.  [default: 64]
+  --portrait-preference [mixed|noportrait|portrait]
                                   Preference regarding portrait screenshots.
-                                  Defaults to 'portrait'.
-  --screenshot-count INTEGER      The number of screenshots to generate.
-                                  Defaults to 4.
-  --screenshot-directory TEXT     The directory in which to store the
-                                  screenshots.  [required]
+                                  [default: portrait]
+  --screenshot-count INTEGER      The number of screenshots to select.
+                                  [default: 4]
+  --screenshot-directory TEXT     The directory into which to copy the
+                                  selected screenshots.  [required]
+  --silent                        Suppress ffmpeg and autogluon output.
   --start-time [%H:%M:%S]         The time at which to start taking
-                                  screenshots. Defaults to 00:00:00.
+                                  screenshots.  [default: 00:00:00]
   --video-path TEXT               The path to the video for which to generate
                                   screenshots.  [required]
   --help                          Show this message and exit.
 ```
+
+### Library
+The [screenshotgenerator](https://pypi.org/project/screenshotgenerator) package, published on PyPI, enables programmatic integration.
 
 ## Contributing
 More training data means better the model accuracy (in theory). However, my ability to curate training data is limited. If you'd like to contribute, please upload your curated files into the appropriate subdirectories [here](https://drive.google.com/drive/folders/1LW7msqJ2T2KSFQoxo_CJ2tpRrIk3PIxP?usp=share_link).
