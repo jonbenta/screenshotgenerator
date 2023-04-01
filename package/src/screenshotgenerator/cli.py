@@ -21,8 +21,9 @@ from .screenshot import Screenshot
               help="The path to ffmpeg.")
 @click.option("--models-directory",
               type=str,
-              required=True,
-              help="The path to the 'models' directory extracted from models.zip.")
+              default=Defaults.MODELS_DIRECTORY,
+              show_default=True,
+              help="The path to the directory containing the autogluon models. If the directory doesn't exist, the pretrained models will be downloaded to this location.")
 @click.option("--pool-directory",
               type=str,
               default=Defaults.POOL_DIRECTORY,

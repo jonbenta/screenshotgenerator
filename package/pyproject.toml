@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "screenshotgenerator"
-version = "0.2.1"
+version = "0.3.1"
 authors = [
   { name="jonbenta" },
 ]
 description = "A library for automatically generating and selecting video screenshots."
 readme = "README.md"
 requires-python = ">=3.8, <3.11"
-dependencies = ["autogluon", "click", "pymediainfo"]
+dependencies = ["autogluon", "click", "gdown", "platformdirs", "pymediainfo"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",

@@ -14,8 +14,6 @@ pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url http
 ```
 
 ## Usage
-Download and extract [models.zip](https://drive.google.com/file/d/1oRFO0fW-fmFn-CfsdvQqNTqQgU2gaQ0B/view?usp=sharing).
-
 ### CLI
 ```
 Usage: screenshotgenerator [OPTIONS]
@@ -26,8 +24,11 @@ Options:
                                   duration, to exclude credits.
   --ffmpeg-path TEXT              The path to ffmpeg. Defaults to 'ffmpeg', 
                                   which requires ffmpeg to be in your path.
-  --models-directory TEXT         The path to the 'models' directory extracted
-                                  from models.zip.  [required]
+  --models-directory TEXT         The path to the directory containing the
+                                  autogluon models. If the directory doesn't
+                                  exist, the pretrained models will be
+                                  downloaded to this location. Defaults to a 
+                                  subdirectory in the user data directory.
   --pool-directory TEXT           The directory in which to store the
                                   screenshot pool. Defaults to the temporary 
                                   directory.
@@ -52,7 +53,7 @@ Options:
 
 #### Example
 ```
-screenshotgenerator --models-directory "C:\Users\User\Downloads\models" --screenshot-directory "B:\Screenshots" --video-path "Z:\Encodes\A Great Movie (2023).mkv --portrait-preference mixed
+screenshotgenerator --screenshot-directory "B:\Screenshots" --video-path "Z:\Encodes\A Great Movie (2023).mkv --portrait-preference mixed
 ```
 
 ### Library
@@ -62,8 +63,6 @@ The library provides the following:
 - `Screenshot` class
 
 #### Parameters
-- **`models_directory: str`**  
-The path to the `models` directory extracted from `models.zip`.
 - **`screenshot_directory: str`**  
 The directory into which to copy the selected screenshots.
 - **`video_path: str`**  
@@ -72,6 +71,9 @@ The path to the video for which to generate screenshots.
 The time at which to stop taking screenshots. Defaults to 95% of the video duration, to exclude credits.
 - _`ffmpeg_path: str`_  
 The path to `ffmpeg`. Defaults to 'ffmpeg', which requires `ffmpeg` to be in your path.
+- _`models_directory: str`_
+The path to the directory containing the autogluon models. Defaults to a subdirectory in the user data directory.  
+If the directory doesn't exist, the pretrained models will be downloaded to this location. 
 - _`pool_directory: str`_  
 The directory in which to store the screenshot pool. Defaults to the temporary directory.
 - _`pool_size: int`_  
@@ -93,7 +95,6 @@ The time at which to start taking screenshots. Defaults to 00:00:00.
 import screenshotgenerator
 
 screenshots = screenshotgenerator.generate(
-    models_directory=r"C:\Users\User\Downloads\models",
     screenshot_directory=r"B:\Screenshots",
     video_path=r"Z:\Encodes\A Great Movie (2023).mkv",
     portrait_preference = screenshotgenerator.PortraitPreference.MIXED)

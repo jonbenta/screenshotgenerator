@@ -6,24 +6,31 @@ import subprocess
 from autogluon.multimodal import MultiModalPredictor
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timedelta
+from gdown import download
 from os import devnull
 from pandas import DataFrame
 from pathlib import Path
 from pymediainfo import MediaInfo
 from shutil import copy, which
+from tempfile import gettempdir
+from zipfile import ZipFile
 
 from .defaults import Defaults
 from .portrait_preference import PortraitPreference
 from .screenshot import Screenshot
 
-def generate(models_directory: str, screenshot_directory: str, video_path: str, end_time: Optional[datetime] = Defaults.END_TIME, 
-             ffmpeg_path: Optional[str] = Defaults.FFMPEG_PATH, pool_directory: Optional[str] = Defaults.POOL_DIRECTORY, 
+def generate(screenshot_directory: str, video_path: str, end_time: Optional[datetime] = Defaults.END_TIME, ffmpeg_path: Optional[str] = Defaults.FFMPEG_PATH, 
+             models_directory: Optional[str] = Defaults.MODELS_DIRECTORY, pool_directory: Optional[str] = Defaults.POOL_DIRECTORY, 
              pool_size: Optional[int] = Defaults.POOL_SIZE, portrait_preference: Optional[PortraitPreference] = Defaults.PORTRAIT_PREFERENCE,
              screenshot_count: Optional[int] = Defaults.SCREENSHOT_COUNT, silent: Optional[bool] = Defaults.SILENT, 
              start_time: Optional[datetime] = datetime.strptime(Defaults.START_TIME, Defaults.TIME_FORMAT)) -> list[Screenshot]:
     
-    if not Path(models_directory, "focused").is_dir() or not Path(models_directory, "portrait").is_dir():
-        raise ValueError(f"'{models_directory}' must contain 'focused' and 'portrait' subdirectories.")
+    if Path(models_directory).exists():
+        if not Path(models_directory, "focused").is_dir() or not Path(models_directory, "portrait").is_dir():
+            raise ValueError(f"'{models_directory}' must contain 'focused' and 'portrait' subdirectories.")
+    else:
+        _download_models(models_directory, silent)
+
     if not Path(video_path).is_file():
         raise ValueError(f"'{video_path}' is not a file.")
     if which(ffmpeg_path) is None:
@@ -80,6 +87,16 @@ def generate(models_directory: str, screenshot_directory: str, video_path: str, 
 
 def _datetime_to_seconds(time: datetime) -> int:
     return timedelta(hours=time.hour, minutes=time.minute, seconds=time.second).total_seconds()
+
+def _download_models(models_directory: str, silent: bool):
+    models_zip_path = Path(gettempdir(), "models.zip")
+    download(id="1SqlxSoBnmxdM3cMn3KkLqyR1GBwOiiak", output=str(models_zip_path), quiet=silent)
+
+    if not models_zip_path.exists():
+        raise RuntimeError("Failed to download models.")
+
+    with ZipFile(models_zip_path, "r") as models_zip:
+        models_zip.extractall(models_directory)
 
 def _score_screenshots(screenshot_paths: list[str], models_directory: str) -> list[Screenshot]:
     data = DataFrame(screenshot_paths, columns=["file"])
