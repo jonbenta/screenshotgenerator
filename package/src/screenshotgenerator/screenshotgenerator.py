@@ -1,8 +1,9 @@
+from __future__ import annotations
 import click
-import json
 from datetime import datetime
 
 from .click_enum_type import EnumType
+from .common import write_pool_report
 from .defaults import Defaults
 from .generate import generate
 from .portrait_preference import PortraitPreference
@@ -84,13 +85,6 @@ def main(end_time: datetime, ffmpeg_path: str, models_directory: str, pool_direc
         video_path=video_path)
 
     write_pool_report(pool_report_path, sorted_screenshots)
-
-def write_pool_report(report_path: str, sorted_screenshots: list[Screenshot]):
-    if not report_path:
-        return
-    
-    with open(report_path, "w") as pool_list_file:
-        pool_list_file.write(json.dumps(sorted_screenshots, indent=4, default=vars))
 
 if __name__ == "__main__":
     main()

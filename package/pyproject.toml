@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "screenshotgenerator"
-version = "0.3.1"
+version = "0.4.0"
 authors = [
   { name="jonbenta" },
 ]
@@ -22,7 +22,8 @@ classifiers = [
 ]
 
 [project.scripts]
-"screenshotgenerator" = "screenshotgenerator.cli:main"
+"screenshotgenerator" = "screenshotgenerator.screenshotgenerator:main"
+"screenshotselector" = "screenshotgenerator.screenshotselector:main"
 
 [project.urls]
 "Homepage" = "https://github.com/jonbenta/ScreenshotGenerator"
